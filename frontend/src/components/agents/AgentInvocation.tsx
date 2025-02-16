@@ -56,13 +56,14 @@ export const AgentInvocation: React.FC<AgentInvocationProps> = ({
           >
             <Typography
               variant="body1"
+              component="div"
               sx={{
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 fontFamily: 'monospace',
               }}
             >
-              {result.output_text}
+              {result.output_data}
             </Typography>
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
               <Typography variant="body2" color="text.secondary">

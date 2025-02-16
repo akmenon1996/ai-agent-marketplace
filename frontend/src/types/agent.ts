@@ -67,10 +67,12 @@ export interface AgentInvocationRequest {
 export interface AgentInvocationResponse {
   id: number;
   purchase_id: number;
-  input_text: string;
-  output_text?: string;
+  agent_id: number;
+  input_data: string;
+  output_data?: string;
   tokens_used: number;
   created_at: string;
+  agent_name: string;
 }
 
 export interface AgentPurchaseResponse {

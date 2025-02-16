@@ -86,13 +86,19 @@ export const InvocationHistory: React.FC<InvocationHistoryProps> = ({ invocation
                 Invocation #{invocation.id}
               </Typography>
               <Paper variant="outlined" sx={{ p: 2, mb: 2, backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
-                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {invocation.input_text}
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Query:
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  {invocation.input_data}
                 </Typography>
               </Paper>
-              {invocation.output_text && (
+              {invocation.output_data && (
                 <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
-                  <MarkdownOutput content={invocation.output_text} />
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Response:
+                  </Typography>
+                  <MarkdownOutput content={invocation.output_data} />
                 </Paper>
               )}
             </Box>

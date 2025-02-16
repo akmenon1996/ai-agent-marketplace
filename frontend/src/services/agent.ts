@@ -9,6 +9,8 @@ import type {
   AgentPurchaseResponse
 } from '../types/agent';
 
+const API_BASE_URL = 'http://localhost:8000'; // replace with your actual API base URL
+
 const agentService = {
   getAgent: async (token: string, id: number): Promise<ApiResponse<Agent>> => {
     try {
@@ -151,6 +153,30 @@ const agentService = {
       return {
         error: typeof errorMessage === 'string' ? errorMessage : 'Failed to fetch agent analytics',
         status: 'error'
+      };
+    }
+  },
+
+  async summarizeConversation(token: string, input: string, output: string) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/agents/summarize`,
+        {
+          input_text: input,
+          output_text: output
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error summarizing conversation:', error);
+      return {
+        status: 'error',
+        error: 'Failed to summarize conversation',
       };
     }
   },

@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from jose import jwt, JWTError
+import json
 
 from src.database.models import Base, User, Agent, AgentPurchase, AgentInvocation
 from src.database.schemas import (
@@ -280,8 +281,8 @@ async def invoke_agent(
         db_invocation = AgentInvocation(
             user_id=current_user.id,
             agent_id=agent_id,
-            input_data=str(input_data),
-            output_data=str(result),
+            input_data=json.dumps(input_data),  # Properly serialize to JSON
+            output_data=json.dumps(result),     # Properly serialize to JSON
             tokens_used=result.get("token_usage", {}).get("total_tokens", 0)
         )
         db.add(db_invocation)
@@ -298,6 +299,74 @@ async def invoke_agent(
     except Exception as e:
         print(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/agents/summarize")
+async def summarize_conversation(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        input_text = request.get("input_text", "")
+        output_text = request.get("output_text", "")
+        
+        # Extract meaningful content from input
+        try:
+            input_data = json.loads(input_text)
+            if isinstance(input_data, dict):
+                # For interview prep format
+                if 'interview_prep' in input_data:
+                    input_text = input_data['interview_prep'].get('topic', '')
+                # For code review format
+                elif 'code_review' in input_data:
+                    input_text = f"Code review request: {input_data['code_review'].get('code', '')[:100]}"
+                # For direct input
+                elif 'input_text' in input_data:
+                    input_text = input_data['input_text']
+                elif 'topic' in input_data:
+                    input_text = input_data['topic']
+        except:
+            pass
+            
+        # Extract meaningful content from output
+        try:
+            output_data = json.loads(output_text)
+            if isinstance(output_data, dict):
+                output_text = output_data.get('output_text', output_text)
+        except:
+            pass
+            
+        # Clean up the texts
+        input_text = input_text.strip()
+        output_text = output_text.strip()
+        
+        # Generate a clean summary
+        if not input_text and not output_text:
+            summary = "No content available"
+        else:
+            summary = ""
+            if input_text:
+                summary += input_text[:150]
+                if len(input_text) > 150:
+                    summary += "..."
+            if output_text:
+                if summary:
+                    summary += "\nResponse: "
+                summary += output_text[:200]
+                if len(output_text) > 200:
+                    summary += "..."
+        
+        return {
+            "status": "success",
+            "data": {
+                "summary": summary
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
 
 @app.post("/tokens/purchase")
 async def purchase_tokens(
@@ -342,6 +411,34 @@ async def get_user_invocations(
         "tokens_used": inv.tokens_used,
         "created_at": inv.created_at.isoformat()
     } for inv in invocations]
+
+@app.get("/agents/invocations")
+async def list_invocations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    invocations = (
+        db.query(AgentInvocation)
+        .join(AgentPurchase, AgentInvocation.purchase_id == AgentPurchase.id)
+        .join(Agent, AgentPurchase.agent_id == Agent.id)
+        .filter(AgentPurchase.user_id == current_user.id)
+        .order_by(AgentInvocation.created_at.desc())
+        .all()
+    )
+    
+    return {
+        "status": "success",
+        "data": [{
+            "id": invocation.id,
+            "purchase_id": invocation.purchase_id,
+            "agent_id": invocation.agent_id,
+            "input_data": invocation.input_data,
+            "output_data": invocation.output_data,
+            "tokens_used": invocation.tokens_used,
+            "created_at": invocation.created_at,
+            "agent_name": invocation.agent.name
+        } for invocation in invocations]
+    }
 
 # Pre-configured agents
 AVAILABLE_AGENTS = {

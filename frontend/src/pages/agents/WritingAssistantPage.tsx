@@ -30,7 +30,7 @@ export const WritingAssistantPage: React.FC = () => {
 
       const response = await agentService.invokeAgent(token, 5, request);
       if (response.status === 'success' && response.data) {
-        setResult(response.data.output_text || 'No output received');
+        setResult(response.data.output_data || 'No output received');
       } else {
         setError(response.error || 'Failed to get writing assistance');
       }

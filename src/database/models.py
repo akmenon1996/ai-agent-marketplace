@@ -61,7 +61,8 @@ class AgentInvocation(Base):
     purchase_id = Column(Integer, ForeignKey("agent_purchases.id"))
     input_data = Column(String)
     output_data = Column(String)
-    tokens_used = Column(Integer)
+    tokens_used = Column(Integer, default=0)
+    summary = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

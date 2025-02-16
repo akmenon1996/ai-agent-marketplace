@@ -65,19 +65,18 @@ export const CodeReviewPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Review Results
             </Typography>
-            <Typography
-              variant="body1"
-              component="pre"
-              sx={{
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'monospace',
-                backgroundColor: 'background.paper',
-                p: 2,
-                borderRadius: 1,
-              }}
-            >
-              {result.output_text}
-            </Typography>
+            <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {result.output_data}
+              </Typography>
+            </Paper>
           </Paper>
         )}
       </Box>

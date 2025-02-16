@@ -71,7 +71,7 @@ Each agent is implemented as a separate module with specialized capabilities:
 - User profile and token balance tracking
 
 ### 2. Marketplace Interface
-![Marketplace](/screenshots_bot/screenshots/20250216_004741_home_page.png)
+![Marketplace](//screenshots_bot/screenshots/20250216_004741_home_page.png)
 *The marketplace displays available AI agents*
 
 ### 3. Agent Integration
@@ -99,49 +99,49 @@ Each agent provides:
 *Secure login interface with JWT authentication*
 
 ### Dashboard
-![Dashboard](screenshots_bot/screenshots/03_dashboard_20250216_003312.png)
+![Dashboard](/screenshots_bot/screenshots/03_dashboard_20250216_003312.png)
 *User dashboard showing available agents and token balance*
 
 ### Marketplace Overview
-![Marketplace](screenshots_bot/screenshots/04_marketplace_overview_20250216_003320.png)
+![Marketplace](/screenshots_bot/screenshots/04_marketplace_overview_20250216_003320.png)
 *AI Agent Marketplace displaying available agents*
 
 ### User Profile
-![Profile](screenshots_bot/screenshots/07_profile_page_20250216_003336.png)
+![Profile](/screenshots_bot/screenshots/07_profile_page_20250216_003336.png)
 *User profile page showing account details and token balance*
 
 ### Usage History
-![History](screenshots_bot/screenshots/09_history_page_20250216_003353.png)
+![History](/screenshots_bot/screenshots/09_history_page_20250216_003353.png)
 *Detailed history of agent invocations and token usage*
 
 ## Agent Interfaces
 
 ### Code Review Agent
-![Code Review Agent](screenshots_bot/screenshots/20250216_004801_agent_code-review_page.png)
+![Code Review Agent](/screenshots_bot/screenshots/20250216_004801_agent_code-review_page.png)
 *Code Review Agent interface*
 
-![Code Input](screenshots_bot/screenshots/20250216_004801_code_review_code_input.png)
+![Code Input](/screenshots_bot/screenshots/20250216_004801_code_review_code_input.png)
 *Code submission interface with language selection*
 
 ### Resume Reviewer Agent
-![Resume Review Agent](screenshots_bot/screenshots/20250216_004826_agent_resume-reviewer_page.png)
+![Resume Review Agent](/screenshots_bot/screenshots/20250216_004826_agent_resume-reviewer_page.png)
 *Resume Review Agent interface*
 
-![Resume Input](screenshots_bot/screenshots/20250216_004826_resume_reviewer_resume_input.png)
+![Resume Input](/screenshots_bot/screenshots/20250216_004826_resume_reviewer_resume_input.png)
 *Resume submission interface with industry context*
 
 ### Interview Prep Agent
-![Interview Prep Agent](screenshots_bot/screenshots/20250216_004851_agent_interview-prep_page.png)
+![Interview Prep Agent](/screenshots_bot/screenshots/20250216_004851_agent_interview-prep_page.png)
 *Interview Preparation Agent interface*
 
-![Interview Query](screenshots_bot/screenshots/20250216_004851_interview_prep_query_input.png)
+![Interview Query](/screenshots_bot/screenshots/20250216_004851_interview_prep_query_input.png)
 *Interview question submission interface*
 
 ### Writing Assistant Agent
-![Writing Assistant](screenshots_bot/screenshots/20250216_004915_agent_writing-assistant_page.png)
+![Writing Assistant](/screenshots_bot/screenshots/20250216_004915_agent_writing-assistant_page.png)
 *Writing Assistant Agent interface*
 
-![Text Input](screenshots_bot/screenshots/20250216_004916_writing_assistant_text_input.png)
+![Text Input](/screenshots_bot/screenshots/20250216_004916_writing_assistant_text_input.png)
 *Text submission interface for writing improvement*
 
 ## Agent Implementation Details

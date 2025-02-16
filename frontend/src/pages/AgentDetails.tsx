@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../store/AuthContext';
 import { agentService } from '../services/agent';
 import type { Agent } from '../types/agent';
+import MarkdownOutput from '../components/MarkdownOutput'; // Import the MarkdownOutput component
 
 export const AgentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -248,20 +249,13 @@ export const AgentDetails: React.FC = () => {
         </Box>
 
         {output && (
-          <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.50' }}>
+          <Paper sx={{ p: 2, mt: 3 }}>
             <Typography variant="h6" gutterBottom>
               Output
             </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                fontFamily: 'monospace',
-              }}
-            >
-              {output}
-            </Typography>
+            <Paper variant="outlined" sx={{ p: 2, backgroundColor: '#f8f9fa' }}>
+              <MarkdownOutput content={output} />
+            </Paper>
           </Paper>
         )}
       </Paper>

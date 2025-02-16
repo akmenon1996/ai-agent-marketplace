@@ -1,0 +1,32 @@
+[
+  {
+    "agent": "Code Review",
+    "status": "failed",
+    "timestamp": "2025-02-16T00:45:34.723982",
+    "error": "Message: \nStacktrace:\n0   chromedriver                        0x0000000103352bac cxxbridge1$str$ptr + 2724820\n1   chromedriver                        0x000000010334b20c cxxbridge1$str$ptr + 2693684\n2   chromedriver                        0x0000000102eb1afc cxxbridge1$string$len + 93348\n3   chromedriver                        0x0000000102ef88f8 cxxbridge1$string$len + 383648\n4   chromedriver                        0x0000000102f39b94 cxxbridge1$string$len + 650556\n5   chromedriver                        0x0000000102eecba0 cxxbridge1$string$len + 335176\n6   chromedriver                        0x000000010331b664 cxxbridge1$str$ptr + 2498188\n7   chromedriver                        0x000000010331e978 cxxbridge1$str$ptr + 2511264\n8   chromedriver                        0x0000000103300d04 cxxbridge1$str$ptr + 2389292\n9   chromedriver                        0x000000010331f220 cxxbridge1$str$ptr + 2513480\n10  chromedriver                        0x00000001032f1cec cxxbridge1$str$ptr + 2327828\n11  chromedriver                        0x000000010333b8d4 cxxbridge1$str$ptr + 2629884\n12  chromedriver                        0x000000010333ba5c cxxbridge1$str$ptr + 2630276\n13  chromedriver                        0x000000010334ae80 cxxbridge1$str$ptr + 2692776\n14  libsystem_pthread.dylib             0x000000018d4032e4 _pthread_start + 136\n15  libsystem_pthread.dylib             0x000000018d3fe0fc thread_start + 8\n"
+  },
+  {
+    "agent": "Resume Reviewer",
+    "status": "failed",
+    "timestamp": "2025-02-16T00:45:59.128593",
+    "error": "Message: \nStacktrace:\n0   chromedriver                        0x0000000103352bac cxxbridge1$str$ptr + 2724820\n1   chromedriver                        0x000000010334b20c cxxbridge1$str$ptr + 2693684\n2   chromedriver                        0x0000000102eb1afc cxxbridge1$string$len + 93348\n3   chromedriver                        0x0000000102ef88f8 cxxbridge1$string$len + 383648\n4   chromedriver                        0x0000000102f39b94 cxxbridge1$string$len + 650556\n5   chromedriver                        0x0000000102eecba0 cxxbridge1$string$len + 335176\n6   chromedriver                        0x000000010331b664 cxxbridge1$str$ptr + 2498188\n7   chromedriver                        0x000000010331e978 cxxbridge1$str$ptr + 2511264\n8   chromedriver                        0x0000000103300d04 cxxbridge1$str$ptr + 2389292\n9   chromedriver                        0x000000010331f220 cxxbridge1$str$ptr + 2513480\n10  chromedriver                        0x00000001032f1cec cxxbridge1$str$ptr + 2327828\n11  chromedriver                        0x000000010333b8d4 cxxbridge1$str$ptr + 2629884\n12  chromedriver                        0x000000010333ba5c cxxbridge1$str$ptr + 2630276\n13  chromedriver                        0x000000010334ae80 cxxbridge1$str$ptr + 2692776\n14  libsystem_pthread.dylib             0x000000018d4032e4 _pthread_start + 136\n15  libsystem_pthread.dylib             0x000000018d3fe0fc thread_start + 8\n"
+  },
+  {
+    "agent": "Interview Prep",
+    "status": "failed",
+    "timestamp": "2025-02-16T00:46:23.388062",
+    "error": "Message: \nStacktrace:\n0   chromedriver                        0x0000000103352bac cxxbridge1$str$ptr + 2724820\n1   chromedriver                        0x000000010334b20c cxxbridge1$str$ptr + 2693684\n2   chromedriver                        0x0000000102eb1afc cxxbridge1$string$len + 93348\n3   chromedriver                        0x0000000102ef88f8 cxxbridge1$string$len + 383648\n4   chromedriver                        0x0000000102f39b94 cxxbridge1$string$len + 650556\n5   chromedriver                        0x0000000102eecba0 cxxbridge1$string$len + 335176\n6   chromedriver                        0x000000010331b664 cxxbridge1$str$ptr + 2498188\n7   chromedriver                        0x000000010331e978 cxxbridge1$str$ptr + 2511264\n8   chromedriver                        0x0000000103300d04 cxxbridge1$str$ptr + 2389292\n9   chromedriver                        0x000000010331f220 cxxbridge1$str$ptr + 2513480\n10  chromedriver                        0x00000001032f1cec cxxbridge1$str$ptr + 2327828\n11  chromedriver                        0x000000010333b8d4 cxxbridge1$str$ptr + 2629884\n12  chromedriver                        0x000000010333ba5c cxxbridge1$str$ptr + 2630276\n13  chromedriver                        0x000000010334ae80 cxxbridge1$str$ptr + 2692776\n14  libsystem_pthread.dylib             0x000000018d4032e4 _pthread_start + 136\n15  libsystem_pthread.dylib             0x000000018d3fe0fc thread_start + 8\n"
+  },
+  {
+    "agent": "Writing Assistant",
+    "status": "failed",
+    "timestamp": "2025-02-16T00:46:47.653383",
+    "error": "Message: \nStacktrace:\n0   chromedriver                        0x0000000103352bac cxxbridge1$str$ptr + 2724820\n1   chromedriver                        0x000000010334b20c cxxbridge1$str$ptr + 2693684\n2   chromedriver                        0x0000000102eb1afc cxxbridge1$string$len + 93348\n3   chromedriver                        0x0000000102ef88f8 cxxbridge1$string$len + 383648\n4   chromedriver                        0x0000000102f39b94 cxxbridge1$string$len + 650556\n5   chromedriver                        0x0000000102eecba0 cxxbridge1$string$len + 335176\n6   chromedriver                        0x000000010331b664 cxxbridge1$str$ptr + 2498188\n7   chromedriver                        0x000000010331e978 cxxbridge1$str$ptr + 2511264\n8   chromedriver                        0x0000000103300d04 cxxbridge1$str$ptr + 2389292\n9   chromedriver                        0x000000010331f220 cxxbridge1$str$ptr + 2513480\n10  chromedriver                        0x00000001032f1cec cxxbridge1$str$ptr + 2327828\n11  chromedriver                        0x000000010333b8d4 cxxbridge1$str$ptr + 2629884\n12  chromedriver                        0x000000010333ba5c cxxbridge1$str$ptr + 2630276\n13  chromedriver                        0x000000010334ae80 cxxbridge1$str$ptr + 2692776\n14  libsystem_pthread.dylib             0x000000018d4032e4 _pthread_start + 136\n15  libsystem_pthread.dylib             0x000000018d3fe0fc thread_start + 8\n"
+  },
+  {
+    "agent": "Technical Troubleshooting",
+    "status": "failed",
+    "timestamp": "2025-02-16T00:46:49.780320",
+    "error": "Could not navigate to Technical Troubleshooting Agent"
+  }
+]

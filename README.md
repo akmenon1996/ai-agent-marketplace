@@ -1,141 +1,69 @@
-# AI Agent Marketplace
+# AI Agent Hub
 
-A modern, full-stack AI agent marketplace built with FastAPI and React. The platform enables users to access various AI-powered services like code review, resume review, interview preparation, writing assistance, and technical troubleshooting.
+A modern, full-stack AI agent marketplace platform that provides users with access to specialized AI agents for various tasks such as code review, resume review, interview preparation, and writing assistance.
 
-## Features
+## Project Overview
 
-### Backend (FastAPI)
-- User authentication with JWT tokens
-- Token-based payment system
-- Multiple specialized AI agents:
-  - Code Reviewer: Analyzes code and provides improvement suggestions
-  - Resume Reviewer: Reviews resumes and provides feedback
-  - Interview Prep Assistant: Helps prepare for technical interviews
-  - Writing Assistant: Helps improve writing and content
-  - Technical Troubleshooter: Helps solve technical problems
-- Usage tracking and billing
-- Developer earnings system
-- OpenAI GPT-4 integration for AI capabilities
+### Goal
+Create a scalable, secure marketplace for AI-powered agents that can assist users with various professional tasks. The platform focuses on providing high-quality, specialized AI services while maintaining a user-friendly interface and robust token-based economy.
 
-### Frontend (React + TypeScript)
-- Modern, responsive UI with Material-UI
-- Secure authentication flow
-- Interactive agent marketplace
-- Real-time token balance updates
-- Developer dashboard for earnings
-- Seamless agent interaction interface
+### Key Features
+1. Multiple specialized AI agents
+2. Token-based payment system
+3. Secure user authentication
+4. Real-time agent interaction
+5. Usage tracking and history
 
-## Prerequisites
+## Technical Architecture
 
-- Python 3.9+
-- Node.js 16+
-- SQLite (or PostgreSQL for production)
-- OpenAI API key
-
-## Installation
-
-### Backend Setup
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd windsurf-project
+### System Components
+```mermaid
+graph TD
+    A[Frontend - React/TypeScript] --> B[API Gateway - FastAPI]
+    B --> C[Authentication Service]
+    B --> D[Token Management]
+    B --> E[Agent Service]
+    E --> F[OpenAI GPT-4]
+    C --> G[JWT Service]
+    C --> H[Database]
+    D --> H
+    E --> H
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+### Technology Stack
+- Frontend: React with TypeScript
+- Backend: FastAPI (Python)
+- Database: PostgreSQL
+- Authentication: JWT
+- AI: OpenAI GPT-4
+- Testing: Selenium, Pytest
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+## Security Features
+- JWT-based authentication
+- Password hashing
+- Rate limiting
+- Input validation and sanitization
 
-4. Set up environment variables in `.env`:
-```
-SECRET_KEY=your-secret-key
-OPENAI_API_KEY=your-openai-api-key
-```
+For detailed usage instructions, please see our [Usage Guide](docs/usage_guide.md).
 
-5. Initialize the database:
-```bash
-python init_db.py
-```
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env.local` for environment variables:
-```
-REACT_APP_API_URL=http://localhost:8000
-```
-
-## Running the Application
-
-1. Start the backend server:
-```bash
-cd windsurf-project
-source venv/bin/activate
-uvicorn src.main:app --reload
-```
-
-2. Start the frontend development server:
-```bash
-cd frontend
-npm start
-```
-
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
-
-## Using the Marketplace
-
-1. Register a new account or log in
-2. Purchase tokens to use the agents
-3. Browse available agents in the marketplace
-4. Select an agent to use its services
-5. Input your requirements and submit
-6. View the AI-generated response
-
-## API Documentation
-
-Full API documentation is available at `/docs` when running the server. Key endpoints include:
+## Screenshots
 
 ### Authentication
-- POST `/token`: Get authentication token
-- POST `/users/register`: Register new user
+![Login Page](/screenshots_bot/screenshots/01_login_page_20250216_003327.png)
+*Secure login interface with JWT authentication*
 
-### Marketplace
-- GET `/agents`: List available agents
-- GET `/agents/{id}`: Get agent details
-- POST `/agents/purchase`: Purchase an agent
-- POST `/agents/invoke/{id}`: Use an agent's services
+### Dashboard
+![Dashboard](/screenshots_bot/screenshots/03_dashboard_20250216_003312.png)
+*User dashboard showing available agents and token balance*
 
-### Tokens
-- POST `/tokens/purchase`: Purchase tokens
-- GET `/users/me`: Get user info including token balance
+### Marketplace Overview
+![Marketplace](/screenshots_bot/screenshots/04_marketplace_overview_20250216_003320.png)
+*AI Agent Marketplace displaying available agents*
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+For complete technical details, API specifications, and database schema, please refer to our [Technical Documentation](docs/technical_documentation.md).
 
 ## License
+MIT License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## Contributing
+We welcome contributions! Please see our contributing guidelines for more information.

@@ -59,7 +59,6 @@ export const Marketplace: React.FC = () => {
             <AgentCard
               agent={agent}
               onSelect={handleSelectAgent}
-              owned={user?.agent_purchases?.some((purchase: number) => purchase === agent.id) || false}
             />
           </Grid>
         ))}

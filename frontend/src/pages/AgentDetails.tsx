@@ -53,6 +53,8 @@ export const AgentDetails: React.FC = () => {
     try {
       const response = await agentService.purchaseAgent(token, agent.id, agent.price);
       if (response.status === 'success') {
+        // Update the agent's purchased status
+        setAgent(prev => prev ? { ...prev, is_purchased: true } : null);
         setIsPurchased(true);
         // Update user's token balance
         if (response.data) {
@@ -170,7 +172,7 @@ export const AgentDetails: React.FC = () => {
     );
   }
 
-  const isOwned = user?.agent_purchases?.some((purchase: number) => purchase === agent.id) || false;
+  const isOwned = agent.is_purchased;
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -186,16 +188,40 @@ export const AgentDetails: React.FC = () => {
         </Typography>
       </Paper>
 
-      {!isOwned && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Purchase this Agent
-          </Typography>
-          <Button variant="contained" color="primary" onClick={handlePurchase}>
-            Purchase
-          </Button>
-        </Box>
-      )}
+      <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+        {!loading && agent && (
+          <>
+            {isOwned ? (
+              <Button
+                variant="contained"
+                color="success"
+                disabled
+                sx={{ textTransform: 'none' }}
+              >
+                Purchased
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handlePurchase}
+                disabled={loading || !user?.token_balance || user.token_balance < agent.price}
+                sx={{ textTransform: 'none' }}
+              >
+                Purchase ({agent.price} tokens)
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              onClick={handleInvoke}
+              disabled={loading || !isOwned || invoking}
+              sx={{ textTransform: 'none' }}
+            >
+              {invoking ? 'Running...' : 'Run Agent'}
+            </Button>
+          </>
+        )}
+      </Box>
 
       <Paper sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>

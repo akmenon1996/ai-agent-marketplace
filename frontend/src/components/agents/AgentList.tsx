@@ -14,14 +14,12 @@ import { Agent } from '../../types/agent';
 interface AgentListProps {
   agents: Agent[];
   loading?: boolean;
-  ownedAgents?: number[];
   title?: string;
 }
 
 export const AgentList: React.FC<AgentListProps> = ({
   agents,
   loading = false,
-  ownedAgents = [],
   title = 'Available Agents',
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -81,7 +79,6 @@ export const AgentList: React.FC<AgentListProps> = ({
             <Grid item xs={12} sm={6} md={4} key={agent.id}>
               <AgentCard
                 agent={agent}
-                owned={ownedAgents.includes(agent.id)}
               />
             </Grid>
           ))

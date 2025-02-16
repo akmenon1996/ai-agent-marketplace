@@ -146,22 +146,33 @@ async def create_agent(
     db.refresh(db_agent)
     return AgentResponse.model_validate(db_agent)
 
-@app.get("/agents", response_model=List[Dict[str, Any]])
+@app.get("/agents", response_model=List[AgentResponse])
 async def list_agents(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """List all available agents"""
     agents = db.query(Agent).filter(Agent.is_active == True).all()
-    return [{
-        "id": agent.id,
-        "name": agent.name,
-        "description": agent.description,
-        "price": agent.price,
-        "developer_id": agent.developer_id,
-        "is_active": agent.is_active,
-        "created_at": agent.created_at.isoformat()
-    } for agent in agents]
+    
+    # Get all purchased agents for the current user
+    purchased_agent_ids = {
+        purchase.agent_id for purchase in 
+        db.query(AgentPurchase).filter(AgentPurchase.user_id == current_user.id).all()
+    }
+    
+    return [
+        AgentResponse(
+            id=agent.id,
+            name=agent.name,
+            description=agent.description,
+            price=agent.price,
+            developer_id=agent.developer_id,
+            is_active=agent.is_active,
+            is_purchased=agent.id in purchased_agent_ids,
+            created_at=agent.created_at
+        )
+        for agent in agents
+    ]
 
 @app.get("/agents/{agent_id}", response_model=AgentResponse)
 async def get_agent(
@@ -179,9 +190,16 @@ async def get_agent(
         AgentPurchase.agent_id == agent_id
     ).first()
     
-    agent_data = AgentResponse.model_validate(agent)
-    agent_data.is_purchased = purchase is not None
-    return agent_data
+    return AgentResponse(
+        id=agent.id,
+        name=agent.name,
+        description=agent.description,
+        price=agent.price,
+        developer_id=agent.developer_id,
+        is_active=agent.is_active,
+        is_purchased=purchase is not None,
+        created_at=agent.created_at
+    )
 
 @app.post("/agents/purchase", response_model=AgentPurchaseResponse)
 async def purchase_agent(
@@ -189,10 +207,20 @@ async def purchase_agent(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Check if agent exists
     agent = db.query(Agent).filter(Agent.id == purchase.agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
+    # Check if user has already purchased this agent
+    existing_purchase = db.query(AgentPurchase).filter(
+        AgentPurchase.user_id == current_user.id,
+        AgentPurchase.agent_id == purchase.agent_id
+    ).first()
+    if existing_purchase:
+        raise HTTPException(status_code=400, detail="You have already purchased this agent")
+    
+    # Check token balance
     if current_user.token_balance < purchase.purchase_price:
         raise HTTPException(status_code=400, detail="Insufficient token balance")
     

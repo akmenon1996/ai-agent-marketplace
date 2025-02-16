@@ -14,13 +14,11 @@ import type { Agent } from '../../types/agent';
 interface AgentCardProps {
   agent: Agent;
   onSelect?: (agent: Agent) => void;
-  owned?: boolean;
 }
 
 export const AgentCard: React.FC<AgentCardProps> = ({
   agent,
   onSelect,
-  owned = false,
 }) => {
   return (
     <Card
@@ -47,10 +45,19 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           color="primary"
           variant="outlined"
         />
-        {owned ? (
-          <Chip label="Purchased" color="success" />
+        {agent.is_purchased ? (
+          <Chip 
+            label="Purchased" 
+            color="success"
+            sx={{ minWidth: 85 }}
+          />
         ) : (
-          <Button size="small" color="primary" variant="contained">
+          <Button 
+            size="small" 
+            color="primary" 
+            variant="contained"
+            sx={{ minWidth: 85 }}
+          >
             Purchase
           </Button>
         )}

@@ -11,6 +11,8 @@ import {
 import { useAuth } from '../store/AuthContext';
 import { agentService } from '../services/agent';
 import { Agent, AgentInvocationResponse } from '../types/agent';
+import { AgentList } from '../components/agents/AgentList';
+import { InvocationHistory } from '../components/agents/InvocationHistory';
 
 export const Dashboard: React.FC = () => {
   const { user, token } = useAuth();
@@ -66,70 +68,46 @@ export const Dashboard: React.FC = () => {
     );
   }
 
+  // Filter for purchased agents
+  const purchasedAgents = agents.filter(agent => agent.is_purchased);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
+        {/* User Info Section */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
               Welcome back, {user?.username}!
             </Typography>
-            <Typography variant="body1">
+            <Typography variant="body1" color="text.secondary">
               Token Balance: {user?.token_balance || 0} tokens
             </Typography>
           </Paper>
         </Grid>
 
+        {/* My Agents Section */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Your Agents ({agents.length})
-            </Typography>
-            <Grid container spacing={2}>
-              {agents.map((agent) => (
-                <Grid item xs={12} sm={6} md={4} key={agent.id}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="subtitle1">{agent.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {agent.description}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
+          <Paper sx={{ p: 3 }}>
+            <AgentList
+              agents={purchasedAgents}
+              loading={loading}
+              title="My Agents"
+            />
           </Paper>
         </Grid>
 
+        {/* Invocation History Section */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Recent Invocations ({invocations.length})
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              Recent Activity
             </Typography>
-            <Grid container spacing={2}>
-              {invocations.map((invocation) => (
-                <Grid item xs={12} key={invocation.id}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="subtitle1">
-                      Invocation #{invocation.id}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Input: {invocation.input_text}
-                    </Typography>
-                    {invocation.output_text && (
-                      <Typography variant="body2" color="text.secondary">
-                        Output: {invocation.output_text}
-                      </Typography>
-                    )}
-                    <Typography variant="body2" color="text.secondary">
-                      Tokens Used: {invocation.tokens_used}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Created: {new Date(invocation.created_at).toLocaleString()}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
+            {loading ? (
+              <CircularProgress />
+            ) : (
+              <InvocationHistory invocations={invocations} />
+            )}
           </Paper>
         </Grid>
       </Grid>

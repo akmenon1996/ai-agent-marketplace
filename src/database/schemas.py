@@ -24,7 +24,7 @@ class UserResponse(UserBase):
 class AgentBase(BaseModel):
     name: str
     description: str
-    price_per_token: float
+    price: float
 
 class AgentCreate(AgentBase):
     pass
@@ -33,7 +33,7 @@ class AgentResponse(AgentBase):
     id: int
     developer_id: int
     is_active: bool
-    created_at: datetime
+    is_purchased: bool = False
 
     class Config:
         from_attributes = True
@@ -41,15 +41,14 @@ class AgentResponse(AgentBase):
 # Purchase schemas
 class PurchaseBase(BaseModel):
     agent_id: int
-    tokens_purchased: float
+    purchase_price: float
 
 class PurchaseCreate(PurchaseBase):
     pass
 
 class PurchaseResponse(PurchaseBase):
-    id: int
-    user_id: int
-    purchase_date: datetime
+    purchase_id: int
+    remaining_balance: float
 
     class Config:
         from_attributes = True
@@ -92,13 +91,11 @@ class InvocationCreate(InvocationBase):
 
 class InvocationResponse(BaseModel):
     id: int
-    user_id: int
-    agent_id: int
-    tokens_used: float = 0
-    input_data: dict
-    output: Optional[str] = None
+    purchase_id: int
+    input_text: str
+    output_text: Optional[str] = None
+    tokens_used: int
     created_at: datetime
-    status: str
 
     class Config:
         from_attributes = True
@@ -117,7 +114,8 @@ class TokenPurchase(BaseModel):
     currency: str = "usd"
 
 class TokenBalance(BaseModel):
-    balance: int
+    balance: float
+    transaction_id: str
 
 class DeveloperEarnings(BaseModel):
     earnings: float

@@ -29,7 +29,7 @@ class Agent(Base):
     name = Column(String, index=True)
     description = Column(String)
     developer_id = Column(Integer, ForeignKey("users.id"))
-    price_per_token = Column(Float)
+    price = Column(Float)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -44,13 +44,13 @@ class AgentPurchase(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     agent_id = Column(Integer, ForeignKey("agents.id"))
-    tokens_purchased = Column(Float)
-    tokens_remaining = Column(Float)  # Track remaining tokens
+    purchase_price = Column(Float)
     purchase_date = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     user = relationship("User", back_populates="purchases")
     agent = relationship("Agent", back_populates="purchases")
+    invocations = relationship("AgentInvocation", back_populates="purchase")
 
 class AgentInvocation(Base):
     __tablename__ = "agent_invocations"
@@ -58,12 +58,13 @@ class AgentInvocation(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     agent_id = Column(Integer, ForeignKey("agents.id"))
-    tokens_used = Column(Float, default=0)
-    input_data = Column(String)  # JSON string
-    output = Column(String)  # Output text
+    purchase_id = Column(Integer, ForeignKey("agent_purchases.id"))
+    input_data = Column(String)
+    output_data = Column(String)
+    tokens_used = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
-    status = Column(String)  # processing, completed, failed, etc.
 
     # Relationships
     user = relationship("User", back_populates="invocations")
     agent = relationship("Agent", back_populates="invocations")
+    purchase = relationship("AgentPurchase", back_populates="invocations")

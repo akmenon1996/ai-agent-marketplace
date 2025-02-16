@@ -48,6 +48,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = None):
         raise credentials_exception
     
     # Fetch user from database
+    if db is None:
+        raise credentials_exception
+    
     user = db.query(User).filter(User.username == token_data.username).first()
     if user is None:
         raise credentials_exception

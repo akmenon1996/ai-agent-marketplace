@@ -1,36 +1,53 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Response
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy import create_engine, func
-from typing import List, Dict, Any, Generator, Annotated
+from sqlalchemy import create_engine
+from typing import List
 from datetime import timedelta
+import stripe
 import jwt
-from jwt.exceptions import InvalidTokenError, DecodeError
 
-from .database.models import Base, User, Agent, AgentPurchase, AgentInvocation
-from .database.schemas import (
+from src.database.models import Base, User, Agent, AgentPurchase, AgentInvocation
+from src.database.schemas import (
     UserCreate, UserResponse, Token, TokenData,
     AgentCreate, AgentResponse,
     PurchaseCreate, PurchaseResponse,
-    InvocationCreate, InvocationResponse,
-    TokenPurchase, TokenBalance, DeveloperEarnings
+    InvocationCreate, InvocationResponse
 )
-from .auth.security import create_access_token, verify_password, get_password_hash
-from .config import get_settings
-from .middleware.error_handler import error_handler_middleware
+from src.config import get_settings
+from src.auth.security import (
+    create_access_token, 
+    verify_password, 
+    get_password_hash, 
+    get_current_active_user
+)
 
-from .agents.resume_reviewer import ResumeReviewerAgent
-from .agents.code_reviewer import CodeReviewAgent
-from .agents.interview_prep import InterviewPrepAgent
-from .agents.writing_assistant import WritingAssistantAgent
-from .agents.technical_troubleshooter import TechnicalTroubleshooterAgent
+from src.agents.resume_reviewer import ResumeReviewerAgent
+from src.agents.code_reviewer import CodeReviewAgent
+from src.agents.interview_prep import InterviewPrepAgent
+from src.agents.writing_assistant import WritingAssistantAgent
+from src.agents.technical_troubleshooter import TechnicalTroubleshooterAgent
 
-import stripe
-import json
-from fastapi import Request
+from pydantic import BaseModel
 
 app = FastAPI(title="AI Agent Marketplace")
-app.middleware("http")(error_handler_middleware)
+
+# Configure CORS with more permissive settings
+origins = [
+    "http://localhost:3000",  # React dev server
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,  
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
+)
 
 # Database setup
 settings = get_settings()
@@ -43,18 +60,21 @@ Base.metadata.create_all(bind=engine)
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-def get_db() -> Generator[Session, None, None]:
+# OAuth2 scheme
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Dependency to get database session
+async def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+# Dependency to get current user
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[Session, Depends(get_db)]
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -62,61 +82,45 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except (jwt.exceptions.InvalidTokenError, jwt.exceptions.DecodeError):
+        token_data = TokenData(username=username)
+    except jwt.JWTError:
         raise credentials_exception
-    
-    user = db.query(User).filter(User.username == username).first()
+    user = db.query(User).filter(User.username == token_data.username).first()
     if user is None:
         raise credentials_exception
     return user
 
-async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)]
-) -> User:
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
+class TokenPurchaseRequest(BaseModel):
+    amount: float
 
 @app.post("/users/register", response_model=UserResponse)
-async def register_user(
-    user: UserCreate,
-    db: Annotated[Session, Depends(get_db)]
-):
-    # Check if username exists
-    if db.query(User).filter(User.username == user.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
     
-    # Check if email exists
-    if db.query(User).filter(User.email == user.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
+    hashed_password = get_password_hash(user.password)
     db_user = User(
         username=user.username,
         email=user.email,
-        hashed_password=get_password_hash(user.password),
+        hashed_password=hashed_password,
         is_developer=user.is_developer,
-        is_active=True,
-        token_balance=0.0
+        token_balance=0.0,
+        is_active=True
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    return UserResponse.model_validate(db_user)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(
-    db: Annotated[Session, Depends(get_db)],
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -126,17 +130,17 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return Token(access_token=access_token, token_type="bearer")
 
 @app.post("/agents/create", response_model=AgentResponse)
 async def create_agent(
-    agent: AgentCreate,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_active_user)]
+    agent: AgentCreate, 
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     if not current_user.is_developer:
         raise HTTPException(
@@ -148,285 +152,171 @@ async def create_agent(
         name=agent.name,
         description=agent.description,
         developer_id=current_user.id,
-        price_per_token=agent.price_per_token,
+        price=agent.price,
         is_active=True
     )
     db.add(db_agent)
     db.commit()
     db.refresh(db_agent)
-    return db_agent
+    return AgentResponse.model_validate(db_agent)
 
 @app.get("/agents", response_model=List[AgentResponse])
 async def list_agents(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    return db.query(Agent).filter(Agent.is_active == True).all()
+    agents = db.query(Agent).filter(Agent.is_active == True).all()
+    return [AgentResponse.model_validate(agent) for agent in agents]
+
+@app.get("/agents/{agent_id}", response_model=AgentResponse)
+async def get_agent(
+    agent_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Check if user has purchased this agent
+    purchase = db.query(AgentPurchase).filter(
+        AgentPurchase.user_id == current_user.id,
+        AgentPurchase.agent_id == agent_id
+    ).first()
+    
+    agent_data = AgentResponse.model_validate(agent)
+    agent_data.is_purchased = purchase is not None
+    return agent_data
 
 @app.post("/agents/purchase", response_model=PurchaseResponse)
 async def purchase_agent(
     purchase: PurchaseCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    # Check if agent exists
     agent = db.query(Agent).filter(Agent.id == purchase.agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Check if user has enough tokens
-    if current_user.token_balance < purchase.tokens_purchased:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Insufficient tokens"
-        )
+    if current_user.token_balance < purchase.purchase_price:
+        raise HTTPException(status_code=400, detail="Insufficient token balance")
     
-    # Create purchase record
+    current_user.token_balance -= purchase.purchase_price
+    
     db_purchase = AgentPurchase(
         user_id=current_user.id,
         agent_id=purchase.agent_id,
-        tokens_purchased=purchase.tokens_purchased,
-        tokens_remaining=purchase.tokens_purchased  # Set initial remaining tokens
+        purchase_price=purchase.purchase_price
     )
-    
-    # Deduct tokens from user's balance
-    current_user.token_balance -= purchase.tokens_purchased
     
     db.add(db_purchase)
     db.commit()
     db.refresh(db_purchase)
     
-    return db_purchase
+    return PurchaseResponse(
+        agent_id=purchase.agent_id,
+        purchase_id=db_purchase.id,
+        purchase_price=purchase.purchase_price,
+        remaining_balance=current_user.token_balance
+    )
 
-@app.post("/agents/invoke/{agent_id}", response_model=Dict[str, Any])
+@app.post("/agents/invoke/{agent_id}")
 async def invoke_agent(
     agent_id: int,
-    invocation: InvocationCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
+    input_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
+    print(f"Invoking agent {agent_id} with input: {input_data}")
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        print(f"Agent {agent_id} not found in database")
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    print(f"Found agent in database: {agent.name}")
+    # Get the agent instance from available agents
+    agent_key = AGENT_NAME_TO_KEY.get(agent.name)
+    print(f"Looking up agent with key: {agent_key}")
+    print(f"Available agents: {list(AVAILABLE_AGENTS.keys())}")
+    
+    if not agent_key:
+        print(f"No mapping found for agent name: {agent.name}")
+        raise HTTPException(status_code=404, detail=f"No implementation mapping for agent: {agent.name}")
+    
+    agent_instance = AVAILABLE_AGENTS.get(agent_key)
+    if not agent_instance:
+        print(f"No implementation found for agent key: {agent_key}")
+        raise HTTPException(status_code=404, detail="Agent implementation not found")
+    
     try:
-        # Get the agent
-        agent = db.query(Agent).filter(Agent.id == agent_id).first()
-        if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
+        print(f"Processing request with agent instance: {type(agent_instance).__name__}")
+        result = await agent_instance.process_request(input_data)
+        print(f"Got result from agent: {result}")
         
-        # Check if user has purchased the agent
-        purchase = db.query(AgentPurchase).filter(
-            AgentPurchase.user_id == current_user.id,
-            AgentPurchase.agent_id == agent_id
-        ).first()
-        
-        if not purchase:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail="You need to purchase this agent first"
-            )
-        
-        # Check if user has enough tokens
-        if purchase.tokens_remaining < agent.price_per_token:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail="Insufficient tokens"
-            )
-        
-        # Create invocation record
-        invocation_record = AgentInvocation(
+        # Record the invocation
+        db_invocation = AgentInvocation(
             user_id=current_user.id,
             agent_id=agent_id,
-            input_data=json.dumps(invocation.dict()),
-            tokens_used=0,
-            status="processing"
+            input_data=str(input_data),
+            output_data=str(result),
+            tokens_used=result.get("token_usage", {}).get("total_tokens", 0)
         )
-        db.add(invocation_record)
+        db.add(db_invocation)
+        
+        # Update user's token balance
+        cost = result.get("cost", 0)
+        if current_user.token_balance < cost:
+            raise HTTPException(status_code=400, detail="Insufficient token balance")
+        current_user.token_balance -= cost
+        
+        db.commit()
+        return result
+        
+    except Exception as e:
+        print(f"Error processing request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/tokens/purchase")
+async def purchase_tokens(
+    request: TokenPurchaseRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        # In a real app, this would integrate with Stripe or another payment processor
+        # For now, we'll just add the tokens directly
+        current_user.token_balance += request.amount
         db.commit()
         
-        try:
-            # Process the request based on agent type
-            if agent.name == "Code Reviewer":
-                if not invocation.code_review:
-                    raise HTTPException(status_code=400, detail="Missing code review data")
-                agent_instance = CodeReviewAgent()
-                result = await agent_instance.process_request(
-                    code=invocation.code_review.code,
-                    language=invocation.code_review.language,
-                    context=invocation.code_review.context
-                )
-            elif agent.name == "Resume Reviewer":
-                if not invocation.resume_review:
-                    raise HTTPException(status_code=400, detail="Missing resume review data")
-                agent_instance = ResumeReviewerAgent()
-                result = await agent_instance.process_request(
-                    resume_text=invocation.resume_review.resume_text,
-                    context=invocation.resume_review.context
-                )
-            elif agent.name == "Interview Prep":
-                if not invocation.interview_prep:
-                    raise HTTPException(status_code=400, detail="Missing interview prep data")
-                agent_instance = InterviewPrepAgent()
-                result = await agent_instance.process_request(
-                    topic=invocation.interview_prep.topic,
-                    experience_level=invocation.interview_prep.experience_level,
-                    context=invocation.interview_prep.context
-                )
-            elif agent.name == "Writing Assistant":
-                if not invocation.writing_assistant:
-                    raise HTTPException(status_code=400, detail="Missing writing assistant data")
-                agent_instance = WritingAssistantAgent()
-                result = await agent_instance.process_request(
-                    text=invocation.writing_assistant.text,
-                    style=invocation.writing_assistant.style,
-                    context=invocation.writing_assistant.context
-                )
-            elif agent.name == "Technical Troubleshooter":
-                if not invocation.technical_troubleshooting:
-                    raise HTTPException(status_code=400, detail="Missing technical troubleshooting data")
-                agent_instance = TechnicalTroubleshooterAgent()
-                result = await agent_instance.process_request(
-                    issue=invocation.technical_troubleshooting.problem,
-                    system_info=invocation.technical_troubleshooting.system_info,
-                    context=invocation.technical_troubleshooting.context
-                )
-            else:
-                raise HTTPException(status_code=404, detail="Agent implementation not found")
-                
-            # Update token usage and balance
-            tokens_used = result["tokens_used"]
-            purchase.tokens_remaining -= tokens_used
-            
-            # Update invocation record
-            invocation_record.output = result["output"]
-            invocation_record.status = "completed"
-            invocation_record.tokens_used = tokens_used
-            
-            db.commit()
-            
-            return {
-                "id": invocation_record.id,
-                "output": result["output"],
-                "tokens_used": tokens_used,
-                "status": "completed"
-            }
-                
-        except Exception as agent_error:
-            # Roll back the invocation record if agent processing fails
-            db.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error processing agent request: {str(agent_error)}"
-            )
-                
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
-        )
-
-@app.post("/marketplace/purchase-tokens", response_model=Dict[str, str])
-async def purchase_tokens(
-    purchase: TokenPurchase,
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
-):
-    try:
-        # Create Stripe payment intent
-        payment_intent = stripe.PaymentIntent.create(
-            amount=purchase.amount * 100,  # Convert to cents
-            currency=purchase.currency,
-            metadata={"user_id": current_user.id}
-        )
         return {
-            "client_secret": payment_intent.client_secret,
-            "payment_intent_id": payment_intent.id
+            "status": "success",
+            "new_balance": current_user.token_balance,
+            "amount_added": request.amount
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/marketplace/token-balance", response_model=Dict[str, float])
-async def get_token_balance(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
-):
-    return {"token_balance": current_user.token_balance}
+@app.get("/users/me", response_model=UserResponse)
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    return UserResponse.model_validate(current_user)
 
-@app.get("/marketplace/usage-history", response_model=List[Dict[str, Any]])
-async def get_agent_usage_history(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
-):
-    invocations = db.query(AgentInvocation).filter(
-        AgentInvocation.user_id == current_user.id
-    ).all()
-    
-    return [
-        {
-            "id": inv.id,
-            "agent_id": inv.agent_id,
-            "tokens_used": inv.tokens_used,
-            "status": inv.status,
-            "created_at": inv.created_at
-        }
-        for inv in invocations
-    ]
+# Pre-configured agents
+AVAILABLE_AGENTS = {
+    "resume_reviewer": ResumeReviewerAgent(),
+    "code_reviewer": CodeReviewAgent(),
+    "interview_prep": InterviewPrepAgent(),
+    "writing_assistant": WritingAssistantAgent(),
+    "technical_troubleshooter": TechnicalTroubleshooterAgent()
+}
 
-@app.get("/marketplace/developer-earnings", response_model=Dict[str, Any])
-async def get_developer_earnings(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)]
-):
-    if not current_user.is_developer:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only developers can access earnings"
-        )
-    
-    # Get all agents created by this developer
-    agents = db.query(Agent).filter(Agent.developer_id == current_user.id).all()
-    total_earnings = 0.0
-    earnings_by_agent = {}
-    
-    for agent in agents:
-        # Calculate earnings from invocations
-        invocations = db.query(AgentInvocation).filter(
-            AgentInvocation.agent_id == agent.id
-        ).all()
-        
-        agent_earnings = sum(inv.tokens_used * agent.price_per_token for inv in invocations)
-        earnings_by_agent[agent.name] = agent_earnings
-        total_earnings += agent_earnings
-    
-    return {
-        "total_earnings": total_earnings,
-        "earnings_by_agent": earnings_by_agent
-    }
-
-@app.post("/webhook/stripe")
-async def stripe_webhook(request: Request, db: Annotated[Session, Depends(get_db)]):
-    try:
-        # Get the raw request body
-        payload = await request.body()
-        
-        # Parse the JSON payload
-        event = json.loads(payload)
-
-        # Handle the event
-        if event["type"] == "payment_intent.succeeded":
-            payment_intent = event["data"]["object"]
-            user_id = payment_intent["metadata"]["user_id"]
-            amount = payment_intent["amount"] / 100  # Convert from cents
-
-            # Update user's token balance
-            user = db.query(User).filter(User.id == user_id).first()
-            if user:
-                user.token_balance += amount
-                db.commit()
-
-        return {"status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# Map agent display names to implementation keys
+AGENT_NAME_TO_KEY = {
+    "Interview Prep Assistant": "interview_prep",
+    "Code Reviewer": "code_reviewer",
+    "Resume Reviewer": "resume_reviewer",
+    "Technical Troubleshooter": "technical_troubleshooter",
+    "Writing Assistant": "writing_assistant"
+}
 
 if __name__ == "__main__":
     import uvicorn

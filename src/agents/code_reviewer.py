@@ -42,7 +42,7 @@ class CodeReviewAgent(BaseAgent):
             tokens_used = response.usage.total_tokens
             
             return {
-                "output": output,
+                "output_text": output,
                 "tokens_used": tokens_used
             }
         

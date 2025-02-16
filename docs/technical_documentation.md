@@ -71,7 +71,7 @@ Each agent is implemented as a separate module with specialized capabilities:
 - User profile and token balance tracking
 
 ### 2. Marketplace Interface
-![Marketplace](/screenshots/20250216_004741_home_page.png)
+![Marketplace](/screenshots_bot/screenshots/20250216_004741_home_page.png)
 *The marketplace displays available AI agents*
 
 ### 3. Agent Integration
@@ -95,7 +95,7 @@ Each agent provides:
 ## User Interface
 
 ### Authentication
-![Login Page](screenshots_bot/screenshots/01_login_page_20250216_003327.png)
+![Login Page](/screenshots_bot/screenshots/01_login_page_20250216_003327.png)
 *Secure login interface with JWT authentication*
 
 ### Dashboard

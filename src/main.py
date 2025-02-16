@@ -3,24 +3,25 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import create_engine
-from typing import List
-from datetime import timedelta
-import stripe
-import jwt
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+from jose import jwt, JWTError
 
 from src.database.models import Base, User, Agent, AgentPurchase, AgentInvocation
 from src.database.schemas import (
-    UserCreate, UserResponse, Token, TokenData,
+    UserCreate, UserResponse, 
     AgentCreate, AgentResponse,
-    PurchaseCreate, PurchaseResponse,
+    TokenResponse, TokenData,
+    PurchaseCreate, AgentPurchaseResponse,
     InvocationCreate, InvocationResponse
 )
 from src.config import get_settings
 from src.auth.security import (
-    create_access_token, 
-    verify_password, 
-    get_password_hash, 
-    get_current_active_user
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    get_current_user,
+    oauth2_scheme
 )
 
 from src.agents.resume_reviewer import ResumeReviewerAgent
@@ -33,38 +34,23 @@ from pydantic import BaseModel
 
 app = FastAPI(title="AI Agent Marketplace")
 
-# Configure CORS with more permissive settings
-origins = [
-    "http://localhost:3000",  # React dev server
-    "http://127.0.0.1:3000",
-]
-
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,  
+    allow_origins=["http://localhost:3000"],  # React app origin
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,
 )
 
 # Database setup
 settings = get_settings()
 engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create tables
 Base.metadata.create_all(bind=engine)
 
-# Configure Stripe
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 # Dependency to get database session
-async def get_db():
+def get_db():
     db = SessionLocal()
     try:
         yield db
@@ -87,7 +73,7 @@ async def get_current_user(
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except jwt.JWTError:
+    except JWTError:
         raise credentials_exception
     user = db.query(User).filter(User.username == token_data.username).first()
     if user is None:
@@ -117,7 +103,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return UserResponse.model_validate(db_user)
 
-@app.post("/token", response_model=Token)
+@app.post("/token", response_model=TokenResponse)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(get_db)
@@ -134,7 +120,7 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/agents/create", response_model=AgentResponse)
 async def create_agent(
@@ -160,13 +146,22 @@ async def create_agent(
     db.refresh(db_agent)
     return AgentResponse.model_validate(db_agent)
 
-@app.get("/agents", response_model=List[AgentResponse])
+@app.get("/agents", response_model=List[Dict[str, Any]])
 async def list_agents(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """List all available agents"""
     agents = db.query(Agent).filter(Agent.is_active == True).all()
-    return [AgentResponse.model_validate(agent) for agent in agents]
+    return [{
+        "id": agent.id,
+        "name": agent.name,
+        "description": agent.description,
+        "price": agent.price,
+        "developer_id": agent.developer_id,
+        "is_active": agent.is_active,
+        "created_at": agent.created_at.isoformat()
+    } for agent in agents]
 
 @app.get("/agents/{agent_id}", response_model=AgentResponse)
 async def get_agent(
@@ -188,7 +183,7 @@ async def get_agent(
     agent_data.is_purchased = purchase is not None
     return agent_data
 
-@app.post("/agents/purchase", response_model=PurchaseResponse)
+@app.post("/agents/purchase", response_model=AgentPurchaseResponse)
 async def purchase_agent(
     purchase: PurchaseCreate,
     current_user: User = Depends(get_current_user),
@@ -213,7 +208,7 @@ async def purchase_agent(
     db.commit()
     db.refresh(db_purchase)
     
-    return PurchaseResponse(
+    return AgentPurchaseResponse(
         agent_id=purchase.agent_id,
         purchase_id=db_purchase.id,
         purchase_price=purchase.purchase_price,
@@ -299,6 +294,26 @@ async def purchase_tokens(
 @app.get("/users/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     return UserResponse.model_validate(current_user)
+
+@app.get("/users/me/invocations", response_model=List[Dict[str, Any]])
+async def get_user_invocations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all invocations for the current user"""
+    invocations = db.query(AgentInvocation).filter(
+        AgentInvocation.user_id == current_user.id
+    ).order_by(AgentInvocation.created_at.desc()).all()
+    
+    return [{
+        "id": inv.id,
+        "agent_id": inv.agent_id,
+        "agent_name": inv.agent.name,
+        "input_data": inv.input_data,
+        "output_data": inv.output_data,
+        "tokens_used": inv.tokens_used,
+        "created_at": inv.created_at.isoformat()
+    } for inv in invocations]
 
 # Pre-configured agents
 AVAILABLE_AGENTS = {

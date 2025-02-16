@@ -2,6 +2,14 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
 from datetime import datetime
 
+# Token schemas
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
 # User schemas
 class UserBase(BaseModel):
     username: str
@@ -46,7 +54,7 @@ class PurchaseBase(BaseModel):
 class PurchaseCreate(PurchaseBase):
     pass
 
-class PurchaseResponse(PurchaseBase):
+class AgentPurchaseResponse(PurchaseBase):
     purchase_id: int
     remaining_balance: float
 
@@ -99,14 +107,6 @@ class InvocationResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-# Token schemas
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
 
 # Marketplace schemas
 class TokenPurchase(BaseModel):

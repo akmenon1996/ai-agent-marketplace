@@ -224,6 +224,323 @@ except Exception as e:
 - Token balance verification
 - Automatic usage updates
 
+## Contributing to AI Agent Hub
+
+### Development Environment Setup
+
+1. **Fork and Clone**
+```bash
+git clone https://github.com/your-username/ai-agent-marketplace.git
+cd ai-agent-marketplace
+```
+
+2. **Backend Setup**
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration:
+# - OPENAI_API_KEY
+# - JWT_SECRET
+# - DATABASE_URL
+```
+
+3. **Frontend Setup**
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with:
+# - REACT_APP_API_URL=http://localhost:8000
+```
+
+4. **Database Setup**
+```bash
+# Initialize database
+python src/database/init_db.py
+
+# Run migrations
+alembic upgrade head
+```
+
+### Development Workflow
+
+1. **Create Feature Branch**
+```bash
+git checkout -b feature/your-feature-name
+```
+
+2. **Run Tests**
+```bash
+# Backend tests
+pytest
+
+# Frontend tests
+cd frontend
+npm test
+```
+
+3. **Code Style**
+- Backend: Follow PEP 8
+- Frontend: Use ESLint configuration
+- Run linters before committing:
+```bash
+# Backend
+flake8 src/
+black src/
+
+# Frontend
+cd frontend
+npm run lint
+```
+
+### Modifying Existing Agents
+
+When modifying an existing agent, consider:
+
+1. **Token Usage**
+```python
+class YourAgent(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            name="Your Agent",
+            description="Description",
+            price_per_token=0.0002  # Must be justified
+        )
+```
+
+2. **Error Handling**
+```python
+try:
+    # Agent-specific processing
+    response = await self.client.chat.completions.create(
+        model="gpt-4-turbo-preview",
+        messages=[...]
+    )
+except OpenAIError as e:
+    # Handle OpenAI-specific errors
+    raise AgentError(f"OpenAI error: {str(e)}")
+except Exception as e:
+    # Handle general errors
+    raise AgentError(f"Unexpected error: {str(e)}")
+```
+
+3. **Input Validation**
+```python
+async def process_request(self, input_data: str, context: str = None) -> Dict[str, Any]:
+    # Validate input
+    if not input_data or len(input_data.strip()) == 0:
+        raise ValidationError("Input data cannot be empty")
+    
+    # Validate context if provided
+    if context and len(context) > 1000:
+        raise ValidationError("Context too long, maximum 1000 characters")
+```
+
+4. **Response Format**
+```python
+return {
+    "output_text": str,      # Main response
+    "tokens_used": int,      # Token usage
+    "metadata": Dict,        # Optional metadata
+    "suggestions": List[str] # Optional suggestions
+}
+```
+
+### Adding New Agents
+
+When creating a new agent:
+
+1. **File Structure**
+```
+src/
+└── agents/
+    ├── __init__.py
+    ├── base_agent.py
+    └── your_new_agent/
+        ├── __init__.py
+        ├── agent.py
+        ├── prompts.py
+        └── tests/
+            ├── __init__.py
+            ├── test_agent.py
+            └── test_data/
+```
+
+2. **Agent Implementation Template**
+```python
+from typing import Dict, Any
+from ..base_agent import BaseAgent
+from .prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+
+class NewAgent(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            name="New Agent Name",
+            description="Detailed description",
+            price_per_token=0.0002
+        )
+        self._initialize_prompts()
+    
+    def _initialize_prompts(self):
+        """Initialize agent-specific prompts"""
+        self.system_prompt = SYSTEM_PROMPT
+        self.user_prompt_template = USER_PROMPT_TEMPLATE
+    
+    async def process_request(self, input_data: str, context: str = None) -> Dict[str, Any]:
+        """
+        Process user request
+        
+        Args:
+            input_data: Primary input for processing
+            context: Optional context to guide processing
+            
+        Returns:
+            Dict containing:
+            - output_text: Processed result
+            - tokens_used: Token usage count
+            - metadata: Additional processing info
+        """
+        # Implementation
+```
+
+3. **Required Tests**
+```python
+import pytest
+from your_new_agent.agent import NewAgent
+
+@pytest.fixture
+def agent():
+    return NewAgent()
+
+def test_agent_initialization(agent):
+    assert agent.name == "New Agent Name"
+    assert agent.price_per_token == 0.0002
+
+@pytest.mark.asyncio
+async def test_process_request(agent):
+    result = await agent.process_request("test input")
+    assert "output_text" in result
+    assert "tokens_used" in result
+
+@pytest.mark.asyncio
+async def test_input_validation(agent):
+    with pytest.raises(ValidationError):
+        await agent.process_request("")
+```
+
+4. **Frontend Integration**
+```typescript
+// frontend/src/components/agents/NewAgent.tsx
+import React from 'react';
+import { AgentProps } from '../types';
+
+export const NewAgent: React.FC<AgentProps> = ({
+  onSubmit,
+  loading,
+}) => {
+  // Implementation
+};
+```
+
+5. **Documentation Requirements**
+- Agent purpose and capabilities
+- Input/output specifications
+- Token usage estimates
+- Example use cases
+- Error scenarios and handling
+
+### Testing
+
+1. **Unit Tests**
+```bash
+# Run specific agent tests
+pytest src/agents/your_agent/tests/
+
+# Run with coverage
+pytest --cov=src/agents/your_agent
+```
+
+2. **Integration Tests**
+```bash
+# Run API tests
+pytest tests/integration/
+
+# Run frontend integration tests
+cd frontend
+npm run test:integration
+```
+
+3. **Screenshot Tests**
+```bash
+# Run screenshot bot
+cd screenshots_bot
+python agent_test_bot.py
+```
+
+### Pull Request Guidelines
+
+1. **PR Template**
+```markdown
+## Description
+[Description of changes]
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Agent modification
+- [ ] Documentation update
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] Screenshot tests updated
+- [ ] Manual testing performed
+
+## Token Usage Impact
+[If applicable, describe impact on token usage]
+```
+
+2. **Review Checklist**
+- Code follows style guidelines
+- Tests are comprehensive
+- Documentation is updated
+- Token usage is optimized
+- Error handling is robust
+- Security considerations are addressed
+
+### Deployment
+
+1. **Staging Deployment**
+```bash
+# Backend
+docker build -t ai-agent-hub-backend .
+docker run -p 8000:8000 ai-agent-hub-backend
+
+# Frontend
+cd frontend
+npm run build
+docker build -t ai-agent-hub-frontend .
+docker run -p 3000:80 ai-agent-hub-frontend
+```
+
+2. **Production Considerations**
+- Environment variables are properly set
+- Database migrations are tested
+- Load testing is performed
+- Security scanning is completed
+- Backup procedures are verified
+
 ## Future Plans
 
 ### Short-term Improvements
